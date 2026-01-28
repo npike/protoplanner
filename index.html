@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proto Planner</title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-2WEVK50PWM"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-2WEVK50PWM');
+    </script>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div id="app">
+        <div id="left-sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <h2>Components</h2>
+                <input type="text" id="component-search" placeholder="Search components..." style="width: 100%; padding: 6px 10px; background: #1e1e1e; border: 1px solid #3e3e42; color: white; border-radius: 4px; box-sizing: border-box; font-size: 0.85rem; margin-bottom: 5px;">
+                <div id="category-filters" class="category-filters">
+                    <!-- Categories injected here -->
+                </div>
+            </div>
+            <div class="sidebar-content" id="component-palette">
+                <!-- Components injected here -->
+            </div>
+            <div class="sidebar-footer">
+                <div id="app-version">v1.0.0</div>
+                <div style="text-align: center; margin-top: 5px;">
+                    <a href="https://github.com/npike/protoplanner" target="_blank" style="font-size: 0.65rem; color: #007acc; text-decoration: none;">Issues/Requests</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="workspace">
+            <div id="view-overlay">TOP VIEW</div>
+            <div id="hover-info"></div>
+            <div id="board-container"></div>
+        </div>
+
+        <div id="right-sidebar" class="sidebar">
+            <div id="project-meta" style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">
+                <input type="text" id="project-name" value="Untitled Project" style="width: 100%; font-size: 1.1rem; font-weight: bold; background: transparent; border: 1px solid transparent; color: #fff; padding: 5px; margin-bottom: 5px; border-radius: 4px;" placeholder="Project Name...">
+                <div id="last-modified" style="font-size: 0.75rem; color: #888;">Modified: Never</div>
+            </div>
+
+            <h2>Wire Color</h2>
+            <div class="color-palette">
+                <div class="color-swatch active" style="background-color: #ff0000;" data-color="#ff0000"></div>
+                <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
+                <div class="color-swatch" style="background-color: #0000ff;" data-color="#0000ff"></div>
+                <div class="color-swatch" style="background-color: #ffff00;" data-color="#ffff00"></div>
+                <div class="color-swatch" style="background-color: #00ff00;" data-color="#00ff00"></div>
+                <div class="color-swatch" style="background-color: #ffa500;" data-color="#ffa500"></div>
+                <div class="color-swatch" style="background-color: #8b4513;" data-color="#8b4513"></div>
+                <div class="color-swatch" style="background-color: #ffffff;" data-color="#ffffff"></div>
+            </div>
+
+            <div id="selection-panel">
+                <h3>Selected Item</h3>
+                <div id="selected-info" style="margin-bottom: 10px; font-size: 0.9rem; color: #00aaff;">
+                    Type: <span id="selected-type">None</span>
+                </div>
+                
+                <div id="label-control" style="margin-bottom: 15px;">
+                    <label style="font-size: 0.8rem; color: #888; display: block; margin-bottom: 5px;">Custom Label</label>
+                    <input type="text" id="comp-label-input" placeholder="e.g. R1, PWR_IN" style="width: 100%; padding: 5px; background: #1e1e1e; border: 1px solid #3e3e42; color: white; border-radius: 4px; box-sizing: border-box;">
+                </div>
+
+                <div class="control-group" style="display: flex; gap: 5px; margin-bottom: 5px;">
+                    <button id="btn-rotate" class="btn" style="flex: 1;">Rotate (R)</button>
+                    <button id="btn-lock" class="btn" style="flex: 1;">Lock (L)</button>
+                </div>
+                <div id="pitch-controls" style="margin-bottom: 10px;">
+                    <label style="font-size: 0.8rem; color: #888; display: block; margin-bottom: 5px;">Length / Pitch</label>
+                    <div style="display: flex; gap: 5px;">
+                        <button id="btn-pitch-dec" class="btn" style="flex: 1;">-</button>
+                        <button id="btn-pitch-inc" class="btn" style="flex: 1;">+</button>
+                    </div>
+                </div>
+                <button id="btn-delete" class="btn btn-danger">Delete (Del)</button>
+            </div>
+            
+            <div id="view-controls" style="margin-top: 20px; border-top: 1px solid #3e3e42; padding-top: 20px;">
+                <h3>Controls</h3>
+                <div id="board-selection" style="margin-bottom: 10px;">
+                    <label style="font-size: 0.8rem; color: #888; display: block; margin-bottom: 5px;">Board Type</label>
+                    <select id="board-type-select" class="btn" style="background: #1e1e1e; border: 1px solid #3e3e42; color: white;">
+                        <!-- Options injected dynamically -->
+                    </select>
+                </div>
+                <button id="btn-wire-mode" class="btn" style="background: #444;">Wire Mode: OFF (W)</button>
+                <button id="btn-flip" class="btn btn-primary" style="margin-top: 10px;">Flip Board (F)</button>
+                <button id="btn-bom" class="btn" style="margin-top: 10px; background: #2e7d32;">Generate BOM</button>
+            </div>
+
+            <div id="instructions">
+                <button id="clear-btn" style="width: 100%; padding: 10px; margin-bottom: 15px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer;">Clear Board</button>
+                <p><strong>W</strong> to toggle Wire Mode.</p>
+                <p><strong>Drag</strong> components to move.</p>
+                <p><strong>Click</strong> to select.</p>
+                <p><strong>Esc</strong> to cancel/deselect.</p>
+                <p><strong>Del</strong> to remove selected.</p>
+                <p><strong>F</strong> to flip board.</p>
+                <p><strong>R</strong> to rotate.</p>
+                <p><strong>L</strong> to lock.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOM Modal -->
+    <div id="bom-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Bill of Materials</h2>
+            <div id="bom-list"></div>
+            <button id="btn-copy-bom" class="btn btn-primary" style="margin-top: 20px;">Copy to Clipboard</button>
+        </div>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/registry.js"></script>
+    <script src="js/board-registry.js"></script>
+    <!-- Individual Components -->
+    <script src="components/screw-terminal-2.js"></script>
+    <script src="components/dc-jack.js"></script>
+    <script src="components/wemos-d1-mini.js"></script>
+    <script src="components/diode.js"></script>
+    <script src="components/resistor.js"></script>
+    <script src="components/cap-electrolytic.js"></script>
+    <script src="components/cap-ceramic.js"></script>
+    <script src="components/potentiometer.js"></script>
+    <script src="components/led.js"></script>
+    <script src="components/mp1584.js"></script>
+        <script src="components/mosfet-n.js"></script>
+            <script src="components/ne555.js"></script>
+                <script src="components/tactile-switch.js"></script>
+                <script src="components/dip-switch-4.js"></script>
+                <script src="js/board.js"></script>    <script src="js/components.js"></script>
+    <script src="js/interaction.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
