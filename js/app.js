@@ -9,7 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log("Initializing...");
         
         // 0. Initialize Mobile Detection
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isSmallScreen = window.innerWidth < 800 || window.matchMedia("(max-width: 800px)").matches;
+        const isMobile = isMobileUA || isSmallScreen;
+        
         if (isMobile) {
             document.body.classList.add('mobile-mode');
             console.log("Mobile mode detected");
@@ -224,6 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('component-details-modal').style.display = 'none';
                 interactionManager.deselectAll();
             }
+            // If clicking workspace background (not a component), deselect all will hide tooltip
         };
         btnCopyBOM.onclick = () => {
             const text = Array.from(bomList.querySelectorAll('.bom-item')).map(el => el.innerText).join('\n');
@@ -258,6 +262,33 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!comp) return;
 
             interactionManager.selectItem('component', compId);
+
+            // If we are in dual view mode, show a tooltip instead of a modal
+            if (boardTop && boardBottom) {
+                const hoverInfo = document.getElementById('hover-info');
+                const workspace = document.getElementById('workspace');
+                if (hoverInfo && workspace) {
+                    const workspaceRect = workspace.getBoundingClientRect();
+                    const def = ComponentRegistry.get(comp.type);
+                    hoverInfo.innerHTML = `<strong>${def.name}</strong>` + (comp.customLabel ? `<span>${comp.customLabel}</span>` : "");
+                    hoverInfo.classList.add('mobile-visible');
+                    
+                    // Position relative to workspace parent
+                    const x = e.detail.x - workspaceRect.left;
+                    const y = e.detail.y - workspaceRect.top;
+                    
+                    let left = x + 10;
+                    let top = y - 40; // Above the finger
+                    
+                    if (left + 150 > workspaceRect.width) left = x - 160;
+                    if (top < 10) top = y + 20;
+
+                    hoverInfo.style.left = left + 'px';
+                    hoverInfo.style.top = top + 'px';
+                }
+                console.log("Dual view active, showing tooltip instead of modal.");
+                return;
+            }
 
             const def = ComponentRegistry.get(comp.type);
             compDetailName.textContent = def.name;

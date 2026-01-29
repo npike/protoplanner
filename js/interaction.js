@@ -319,6 +319,10 @@ class InteractionManager {
             }
         }
         this.selectedItem = null;
+        
+        const hoverInfo = document.getElementById('hover-info');
+        if (hoverInfo) hoverInfo.classList.remove('mobile-visible');
+
         this.updateSelectionUI();
     }
 
@@ -479,7 +483,7 @@ class InteractionManager {
              const dx = x - this.touchState.lastPan.x;
              const dy = y - this.touchState.lastPan.y;
              
-             if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+             if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
                  e.preventDefault();
                  this.isGestureActive = true;
                  
@@ -514,6 +518,7 @@ class InteractionManager {
     }
 
     handleBoardClick(e, board) {
+        console.log("Board click triggered. isGestureActive:", this.isGestureActive);
         if (this.isGestureActive) {
             return;
         }
@@ -533,7 +538,11 @@ class InteractionManager {
         if (compEl) {
             if (isMobile) {
                 document.dispatchEvent(new CustomEvent('component-selected-mobile', { 
-                    detail: { componentId: compEl.dataset.id } 
+                    detail: { 
+                        componentId: compEl.dataset.id,
+                        x: e.clientX,
+                        y: e.clientY
+                    } 
                 }));
             } else if (!this.wireModeEnabled && compEl.classList.contains('component')) {
                 this.selectItem('component', compEl.dataset.id);

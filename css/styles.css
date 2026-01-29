@@ -466,10 +466,13 @@ body.mobile-mode #view-overlay {
 }
 
 body.mobile-mode #hover-info {
-    display: none !important; /* Disable standard hover tooltip in mobile */
+    display: none;
 }
 
-/* Mobile Component Modal */
+body.mobile-mode #hover-info.mobile-visible {
+    display: block !important;
+}
+
 .pin-list {
     margin-top: 15px;
     max-height: 200px;
