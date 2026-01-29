@@ -197,7 +197,13 @@ class ComponentManager {
         const anchor = this.primaryBoard.getHoleById(comp.anchorId);
         const nextRot = (comp.rotation + 90) % 360;
         const pinIds = this.calculatePinIds(def, anchor, nextRot, comp.pitch, comp.mountedSide, this.primaryBoard);
-        if (!pinIds) return;
+        
+        if (!pinIds) {
+            // Provide visual feedback that it doesn't fit
+            this.renderGhost(comp.type, anchor, nextRot, comp.pitch, this.primaryBoard);
+            setTimeout(() => this.clearGhost(), 500);
+            return;
+        }
         comp.rotation = nextRot; comp.pinIds = pinIds;
         this.renderAll();
     }
@@ -210,7 +216,13 @@ class ComponentManager {
         const nextP = Math.max(1, Math.min(15, comp.pitch + delta));
         const anchor = this.primaryBoard.getHoleById(comp.anchorId);
         const pinIds = this.calculatePinIds(def, anchor, comp.rotation, nextP, comp.mountedSide, this.primaryBoard);
-        if (!pinIds) return;
+        
+        if (!pinIds) {
+            // Provide visual feedback that it doesn't fit
+            this.renderGhost(comp.type, anchor, comp.rotation, nextP, this.primaryBoard);
+            setTimeout(() => this.clearGhost(), 500);
+            return;
+        }
         comp.pitch = nextP; comp.pinIds = pinIds;
         this.renderAll();
     }
