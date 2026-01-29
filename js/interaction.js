@@ -42,7 +42,7 @@ class InteractionManager {
 
     applyGlobalTransform() {
         const container = document.getElementById('dual-view-container');
-        if (container && document.body.classList.contains('mobile-mode')) {
+        if (container && (document.body.classList.contains('mobile-mode') || document.body.classList.contains('dual-view-mode'))) {
             container.style.willChange = 'transform';
             container.style.transform = `translate(${this.touchState.translate.x}px, ${this.touchState.translate.y}px) scale(${this.touchState.scale})`;
         }
@@ -233,6 +233,8 @@ class InteractionManager {
             }
         } else if (e.key.toLowerCase() === 'f') {
             this.flipBoard();
+        } else if (e.key.toLowerCase() === 'v') {
+            if (window.toggleDualView) window.toggleDualView();
         } else if (e.key.toLowerCase() === 'w') {
             this.toggleWireMode();
         } else if (e.key === '+' || e.key === '=') {
@@ -523,12 +525,13 @@ class InteractionManager {
             return;
         }
         const isMobile = document.body.classList.contains('mobile-mode');
+        const isDualView = document.body.classList.contains('dual-view-mode');
         const target = e.target;
 
         if (target.tagName === 'line' && target.classList.contains('wire')) {
             const wireId = this.wires.find(w => w.side === board.side && board.getHoleById(w.startHoleId).cx === parseFloat(target.getAttribute('x1')))?.id;
             if (wireId) { 
-                if (!isMobile) this.selectItem('wire', wireId); 
+                if (!isMobile && !isDualView) this.selectItem('wire', wireId); 
                 e.stopPropagation(); 
                 return; 
             }
@@ -536,7 +539,7 @@ class InteractionManager {
         
         const compEl = target.closest('.component') || target.closest('.component-pins');
         if (compEl) {
-            if (isMobile) {
+            if (isMobile || isDualView) {
                 document.dispatchEvent(new CustomEvent('component-selected-mobile', { 
                     detail: { 
                         componentId: compEl.dataset.id,
@@ -554,7 +557,7 @@ class InteractionManager {
         const pt = Utils.getSVGCoordinates(board.svg, e);
         const hole = board.getHoleAt(pt.x, pt.y);
         
-        if (isMobile) {
+        if (isMobile || isDualView) {
             // In dual view, maybe we don't flip on background click?
             // Or only if it's NOT a dual view.
             if (this.boards.length === 1) this.flipBoard();

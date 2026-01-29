@@ -46,6 +46,55 @@ document.addEventListener('DOMContentLoaded', () => {
         const interactionManager = new InteractionManager(isMobile ? [boardTop, boardBottom] : [board], compManager);
         console.log("InteractionManager initialized");
 
+        window.toggleDualView = (forceEnable = null) => {
+            const currentlyEnabled = document.body.classList.contains('dual-view-mode');
+            const shouldEnable = forceEnable !== null ? forceEnable : !currentlyEnabled;
+            
+            if (shouldEnable === currentlyEnabled && forceEnable === null) return;
+            
+            const btn = document.getElementById('btn-dual-view');
+            
+            if (shouldEnable) {
+                document.body.classList.add('dual-view-mode');
+                if (btn) btn.textContent = "Dual View: ON (V)";
+                if (btn) btn.style.background = "#007acc";
+                
+                // Initialize top/bottom boards if they don't exist
+                if (!boardTop) {
+                    boardTop = new Board('board-container-top');
+                    boardTop.setSide('top');
+                    boardTop.setBoardType(board.currentDefId);
+                }
+                if (!boardBottom) {
+                    boardBottom = new Board('board-container-bottom');
+                    boardBottom.setSide('bottom');
+                    boardBottom.setBoardType(board.currentDefId);
+                }
+                
+                // Update managers to use dual boards
+                compManager.boards = [boardTop, boardBottom];
+                interactionManager.boards = [boardTop, boardBottom];
+                interactionManager.resetGlobalTransform();
+            } else {
+                document.body.classList.remove('dual-view-mode');
+                if (btn) btn.textContent = "Dual View: OFF (V)";
+                if (btn) btn.style.background = "#444";
+                
+                // Update managers to use primary single board
+                compManager.boards = [board];
+                interactionManager.boards = [board];
+                interactionManager.resetGlobalTransform();
+            }
+            
+            // Refresh view
+            compManager.renderAll();
+            interactionManager.renderWires();
+            interactionManager.attachToBoard();
+        };
+
+        const btnDualView = document.getElementById('btn-dual-view');
+        if (btnDualView) btnDualView.onclick = () => window.toggleDualView();
+
         // 2. Initialize Component Palette (Dynamic Sidebar)
         const palette = document.getElementById('component-palette');
         const filterContainer = document.getElementById('category-filters');
@@ -147,6 +196,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             boardBottom.setBoardType(state.b);
                         } else {
                             board.setBoardType(state.b);
+                            if (boardTop) boardTop.setBoardType(state.b);
+                            if (boardBottom) boardBottom.setBoardType(state.b);
                         }
                         // Re-attach listeners to new board SVG
                         interactionManager.attachToBoard();
@@ -170,6 +221,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     boardBottom.setBoardType(boardSelect.value);
                 } else {
                     board.setBoardType(boardSelect.value);
+                    if (boardTop) boardTop.setBoardType(boardSelect.value);
+                    if (boardBottom) boardBottom.setBoardType(boardSelect.value);
                 }
                 compManager.clear(true);
                 interactionManager.clear(true);
