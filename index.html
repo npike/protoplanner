@@ -39,16 +39,24 @@
         <div id="workspace">
             <div id="mobile-header">
                 <div class="header-main">
-                    <div id="mobile-project-name" style="color: #00aaff; font-size: 0.85rem; margin-bottom: 2px; font-weight: bold;">Untitled Project</div>
                     <h1>Proto Planner <span id="mobile-version"></span></h1>
+                    <div id="mobile-project-name" style="color: #888; font-size: 0.85rem; margin-top: 2px; font-weight: bold;">Untitled Project</div>
                     <p class="edit-notice">View on desktop to create/edit projects</p>
                 </div>
                 <div class="mobile-instructions">
-                    <span>Tap board to flip</span> • <span>Tap component for pin-out</span> • <span>Pinch to zoom</span>
+                    <span>Tap component for pin-out & highlight</span> • <span>Pinch to zoom</span>
                 </div>
             </div>
             <div id="view-overlay">TOP VIEW</div>
             <div id="hover-info"></div>
+            <div id="dual-view-container">
+                <div id="board-container-top" class="board-pane">
+                    <div class="pane-label">TOP</div>
+                </div>
+                <div id="board-container-bottom" class="board-pane">
+                    <div class="pane-label">BOTTOM</div>
+                </div>
+            </div>
             <div id="board-container"></div>
         </div>
 

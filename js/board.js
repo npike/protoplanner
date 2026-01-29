@@ -57,7 +57,8 @@ class Board {
         this.svg.appendChild(this.ghostLayer);
 
         const overlay = document.getElementById('view-overlay');
-        if (overlay) overlay.textContent = this.side.toUpperCase() + ' VIEW';
+        const isMobile = document.body.classList.contains('mobile-mode');
+        if (overlay && !isMobile) overlay.textContent = this.side.toUpperCase() + ' VIEW';
 
         this.render();
     }
@@ -66,7 +67,8 @@ class Board {
         if (this.side !== side) {
             this.side = side;
             const overlay = document.getElementById('view-overlay');
-            if (overlay) overlay.textContent = side.toUpperCase() + ' VIEW';
+            const isMobile = document.body.classList.contains('mobile-mode');
+            if (overlay && !isMobile) overlay.textContent = side.toUpperCase() + ' VIEW';
             this.render();
         }
     }

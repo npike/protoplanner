@@ -8,7 +8,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log("Initializing...");
         
-        // 0. Initialize Board Selection
+        // 0. Initialize Mobile Detection
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+        if (isMobile) {
+            document.body.classList.add('mobile-mode');
+            console.log("Mobile mode detected");
+        }
+
+        // 1. Initialize Board Selection
         const boardSelect = document.getElementById('board-type-select');
         Object.keys(BoardRegistry).forEach(id => {
             const opt = document.createElement('option');
@@ -17,13 +24,26 @@ document.addEventListener('DOMContentLoaded', () => {
             boardSelect.appendChild(opt);
         });
 
-        const board = new Board('board-container');
-        console.log("Board initialized");
+        let board, boardTop, boardBottom;
+        if (isMobile) {
+            boardTop = new Board('board-container-top');
+            boardTop.setSide('top');
+            boardBottom = new Board('board-container-bottom');
+            boardBottom.setSide('bottom');
+            board = boardTop; // Reference for generic checks
+        } else {
+            board = new Board('board-container');
+        }
         
-        const compManager = new ComponentManager(board);
+        console.log("Board(s) initialized");
+        
+        const compManager = new ComponentManager(isMobile ? [boardTop, boardBottom] : [board]);
         console.log("ComponentManager initialized");
         
-        // 1. Initialize Component Palette (Dynamic Sidebar)
+        const interactionManager = new InteractionManager(isMobile ? [boardTop, boardBottom] : [board], compManager);
+        console.log("InteractionManager initialized");
+
+        // 2. Initialize Component Palette (Dynamic Sidebar)
         const palette = document.getElementById('component-palette');
         const filterContainer = document.getElementById('category-filters');
         const searchInput = document.getElementById('component-search');
@@ -80,10 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
             palette.appendChild(item);
         });
 
-        // 2. Initialize InteractionManager
-        const interactionManager = new InteractionManager(board, compManager);
-        console.log("InteractionManager initialized");
-
         // 3. State Sync Logic (URL Persistence)
         const nameInput = document.getElementById('project-name');
         const modifiedLabel = document.getElementById('last-modified');
@@ -93,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const state = {
                 n: nameInput.value,
                 m: timestamp,
-                b: board.currentDefId,
+                b: (isMobile ? boardTop : board).currentDefId,
                 c: compManager.serialize(),
                 w: interactionManager.serialize()
             };
@@ -123,7 +139,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (state.m) modifiedLabel.textContent = `Modified: ${state.m}`;
                     if (state.b) {
                         boardSelect.value = state.b;
-                        board.setBoardType(state.b);
+                        if (isMobile) {
+                            boardTop.setBoardType(state.b);
+                            boardBottom.setBoardType(state.b);
+                        } else {
+                            board.setBoardType(state.b);
+                        }
                         // Re-attach listeners to new board SVG
                         interactionManager.attachToBoard();
                     }
@@ -141,14 +162,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const proceed = !hasContent || confirm('Changing board type will clear your current project. Continue?');
             
             if (proceed) {
-                board.setBoardType(boardSelect.value);
+                if (isMobile) {
+                    boardTop.setBoardType(boardSelect.value);
+                    boardBottom.setBoardType(boardSelect.value);
+                } else {
+                    board.setBoardType(boardSelect.value);
+                }
                 compManager.clear(true);
                 interactionManager.clear(true);
                 // Re-attach listeners to new board SVG
                 interactionManager.attachToBoard();
                 updateURL();
             } else {
-                boardSelect.value = board.currentDefId;
+                boardSelect.value = (isMobile ? boardTop : board).currentDefId;
             }
         };
 
@@ -191,8 +217,13 @@ document.addEventListener('DOMContentLoaded', () => {
         btnBOM.onclick = generateBOM;
         closeModal.onclick = () => bomModal.style.display = 'none';
         window.onclick = (event) => { 
-            if (event.target == bomModal) bomModal.style.display = 'none'; 
-            if (event.target == document.getElementById('component-details-modal')) document.getElementById('component-details-modal').style.display = 'none';
+            if (event.target == bomModal) {
+                bomModal.style.display = 'none';
+            }
+            if (event.target == document.getElementById('component-details-modal')) {
+                document.getElementById('component-details-modal').style.display = 'none';
+                interactionManager.deselectAll();
+            }
         };
         btnCopyBOM.onclick = () => {
             const text = Array.from(bomList.querySelectorAll('.bom-item')).map(el => el.innerText).join('\n');
@@ -215,20 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Mobile Mode Handling
-        const checkMobile = () => {
-            // Simple check: User Agent or Screen Width
-            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
-            if (isMobile) {
-                document.body.classList.add('mobile-mode');
-                console.log("Mobile mode detected");
-            } else {
-                document.body.classList.remove('mobile-mode');
-            }
-        };
-        checkMobile();
-        window.addEventListener('resize', checkMobile);
-
         // Mobile Component Modal Logic
         const compModal = document.getElementById('component-details-modal');
         const compDetailName = document.getElementById('comp-detail-name');
@@ -239,6 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const compId = e.detail.componentId;
             const comp = compManager.getComponentById(compId);
             if (!comp) return;
+
+            interactionManager.selectItem('component', compId);
 
             const def = ComponentRegistry.get(comp.type);
             compDetailName.textContent = def.name;
@@ -264,7 +283,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         if (closeCompModal) {
-            closeCompModal.onclick = () => compModal.style.display = 'none';
+            closeCompModal.onclick = () => {
+                compModal.style.display = 'none';
+                interactionManager.deselectAll();
+            };
         }
 
         console.log("Proto Planner Initialized");

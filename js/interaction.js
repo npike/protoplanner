@@ -1,6 +1,6 @@
 class InteractionManager {
-    constructor(board, componentManager) {
-        this.board = board;
+    constructor(boards, componentManager) {
+        this.boards = Array.isArray(boards) ? boards : [boards];
         this.compManager = componentManager;
         
         this.activeWire = null; 
@@ -26,14 +26,39 @@ class InteractionManager {
             mode: null, // 'pan', 'pinch'
             startDist: 0,
             startViewBox: null,
-            lastPan: { x: 0, y: 0 }
+            lastPan: { x: 0, y: 0 },
+            startMidpoint: { x: 0, y: 0 },
+            startTranslate: { x: 0, y: 0 },
+            svgMidpoint: { x: 0, y: 0 },
+            startRect: null,
+            // Global transform state for dual view
+            scale: 1,
+            translate: { x: 0, y: 0 }
         };
 
         this.initListeners();
         this.initSidebarControls();
     }
 
-    get wireLayer() { return this.board.wireLayer; }
+    applyGlobalTransform() {
+        const container = document.getElementById('dual-view-container');
+        if (container && document.body.classList.contains('mobile-mode')) {
+            container.style.willChange = 'transform';
+            container.style.transform = `translate(${this.touchState.translate.x}px, ${this.touchState.translate.y}px) scale(${this.touchState.scale})`;
+        }
+    }
+
+    resetGlobalTransform() {
+        this.touchState.scale = 1;
+        this.touchState.translate = { x: 0, y: 0 };
+        const container = document.getElementById('dual-view-container');
+        if (container) {
+            container.style.transform = '';
+            container.style.willChange = '';
+        }
+    }
+
+    get primaryBoard() { return this.boards[0]; }
 
     notifyChange() {
         if (this.onStateChange) this.onStateChange();
@@ -41,25 +66,20 @@ class InteractionManager {
 
     serialize() {
         return this.wires.map(w => ({
-            s: w.start.id, e: w.end.id, c: w.element.getAttribute('stroke'), d: w.side
+            s: w.startHoleId, e: w.endHoleId, c: w.color, d: w.side
         }));
     }
 
     deserialize(data) {
         this.clear(true);
         data.forEach(d => {
-            const startHole = this.board.getHoleById(d.s);
-            const endHole = this.board.getHoleById(d.e);
-            if (startHole && endHole) {
-                const line = Utils.createSVGElement('line', {
-                    x1: startHole.cx, y1: startHole.cy, x2: endHole.cx, y2: endHole.cy,
-                    stroke: d.c, 'stroke-width': 4, 'stroke-linecap': 'round', class: 'wire'
-                });
-                const wireData = { id: `wire_${Date.now()}_${Math.random()}`, start: startHole, end: endHole, element: line, side: d.d };
-                line.addEventListener('contextmenu', (e) => { e.preventDefault(); this.selectItem('wire', wireData.id); });
-                this.wires.push(wireData);
-                this.wireLayer.appendChild(line);
-            }
+            this.wires.push({ 
+                id: `wire_${Date.now()}_${Math.random()}`, 
+                startHoleId: d.s, 
+                endHoleId: d.e, 
+                color: d.c, 
+                side: d.d 
+            });
         });
         this.renderWires();
     }
@@ -71,20 +91,32 @@ class InteractionManager {
         // Board Interactions
         this.attachToBoard();
         
-        // Sidebar Draggables (New Components)
-        const draggables = document.querySelectorAll('.component-item');
-        draggables.forEach(d => {
-            d.addEventListener('dragstart', (e) => {
-                this.isDraggingNew = true;
-                this.draggedType = d.dataset.type;
-                e.dataTransfer.setData('type', d.dataset.type);
+        // Sidebar Draggables (New Components) - Use delegation because they are dynamic
+        const palette = document.getElementById('component-palette');
+        if (palette) {
+            palette.addEventListener('dragstart', (e) => {
+                const item = e.target.closest('.component-item');
+                if (item) {
+                    this.isDraggingNew = true;
+                    this.draggedType = item.dataset.type;
+                    e.dataTransfer.setData('type', item.dataset.type);
+                }
             });
-        });
+            palette.addEventListener('dragend', (e) => {
+                const item = e.target.closest('.component-item');
+                if (item) {
+                    this.isDraggingNew = false;
+                    this.draggedType = null;
+                }
+            });
+        }
 
         // Drop Zone
-        this.board.container.addEventListener('dragover', (e) => this.handleDragOver(e));
-        this.board.container.addEventListener('dragleave', (e) => this.handleDragLeave(e));
-        this.board.container.addEventListener('drop', (e) => this.handleDrop(e));
+        this.boards.forEach(board => {
+            board.container.addEventListener('dragover', (e) => this.handleDragOver(e, board));
+            board.container.addEventListener('dragleave', (e) => this.handleDragLeave(e, board));
+            board.container.addEventListener('drop', (e) => this.handleDrop(e, board));
+        });
 
         // Color Palette
         document.querySelectorAll('.color-swatch').forEach(swatch => {
@@ -108,27 +140,29 @@ class InteractionManager {
     }
 
     attachToBoard() {
-        this.board.svg.addEventListener('click', (e) => this.handleBoardClick(e));
-        this.board.svg.addEventListener('mousedown', (e) => this.handleBoardMouseDown(e));
-        this.board.svg.addEventListener('mousemove', (e) => this.handleBoardMouseMove(e));
-        this.board.svg.addEventListener('mouseup', (e) => this.handleBoardMouseUp(e));
-        this.board.svg.addEventListener('dblclick', (e) => {
-            const componentEl = e.target.closest('.component');
-            if (componentEl) {
-                const id = componentEl.dataset.id;
-                const comp = this.compManager.getComponentById(id);
-                if (comp && !comp.locked) {
-                    this.compManager.rotateComponent(id);
-                    this.notifyChange();
+        this.boards.forEach(board => {
+            board.svg.addEventListener('click', (e) => this.handleBoardClick(e, board));
+            board.svg.addEventListener('mousedown', (e) => this.handleBoardMouseDown(e, board));
+            board.svg.addEventListener('mousemove', (e) => this.handleBoardMouseMove(e, board));
+            board.svg.addEventListener('mouseup', (e) => this.handleBoardMouseUp(e, board));
+            board.svg.addEventListener('dblclick', (e) => {
+                const componentEl = e.target.closest('.component');
+                if (componentEl) {
+                    const id = componentEl.dataset.id;
+                    const comp = this.compManager.getComponentById(id);
+                    if (comp && !comp.locked) {
+                        this.compManager.rotateComponent(id);
+                        this.notifyChange();
+                    }
+                    e.stopPropagation();
                 }
-                e.stopPropagation();
-            }
-        });
+            });
 
-        // Touch Gestures (Pinch/Pan)
-        this.board.svg.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
-        this.board.svg.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
-        this.board.svg.addEventListener('touchend', (e) => this.handleTouchEnd(e));
+            // Touch Gestures (Pinch/Pan)
+            board.svg.addEventListener('touchstart', (e) => this.handleTouchStart(e, board), { passive: false });
+            board.svg.addEventListener('touchmove', (e) => this.handleTouchMove(e, board), { passive: false });
+            board.svg.addEventListener('touchend', (e) => this.handleTouchEnd(e, board));
+        });
     }
     
     initSidebarControls() {
@@ -221,7 +255,7 @@ class InteractionManager {
             btn.textContent = `Wire Mode: ${this.wireModeEnabled ? 'ON' : 'OFF'} (W)`;
             btn.style.background = this.wireModeEnabled ? '#007acc' : '#444';
         }
-        this.board.svg.style.cursor = this.wireModeEnabled ? 'crosshair' : 'default';
+        this.boards.forEach(b => b.svg.style.cursor = this.wireModeEnabled ? 'crosshair' : 'default');
         
         if (!this.wireModeEnabled && this.activeWire) {
             this.cancelWire();
@@ -229,27 +263,37 @@ class InteractionManager {
     }
 
     flipBoard() {
-        const newSide = this.board.side === 'top' ? 'bottom' : 'top';
-        this.board.setSide(newSide);
-        this.compManager.renderAll(newSide);
+        if (this.boards.length > 1) return;
+        const board = this.primaryBoard;
+        const newSide = board.side === 'top' ? 'bottom' : 'top';
+        board.setSide(newSide);
+        this.compManager.renderAll();
         this.renderWires();
         this.deselectAll();
     }
 
     renderWires() {
-        const currentSide = this.board.side;
-        this.wires.forEach(wire => {
-            if (wire.side === currentSide) {
-                wire.element.style.display = 'block';
-                const startHole = this.board.getHoleById(wire.start.id);
-                const endHole = this.board.getHoleById(wire.end.id);
-                wire.element.setAttribute('x1', startHole.cx);
-                wire.element.setAttribute('y1', startHole.cy);
-                wire.element.setAttribute('x2', endHole.cx);
-                wire.element.setAttribute('y2', endHole.cy);
-            } else {
-                wire.element.style.display = 'none';
-            }
+        this.boards.forEach(board => {
+            const side = board.side;
+            board.wireLayer.innerHTML = '';
+            this.wires.forEach(wire => {
+                if (wire.side === side) {
+                    const startHole = board.getHoleById(wire.startHoleId);
+                    const endHole = board.getHoleById(wire.endHoleId);
+                    if (startHole && endHole) {
+                        const line = Utils.createSVGElement('line', {
+                            x1: startHole.cx, y1: startHole.cy, x2: endHole.cx, y2: endHole.cy,
+                            stroke: wire.color, 'stroke-width': 4, 'stroke-linecap': 'round', class: 'wire'
+                        });
+                        line.addEventListener('contextmenu', (e) => { e.preventDefault(); this.selectItem('wire', wire.id); });
+                        line.addEventListener('click', (e) => { this.selectItem('wire', wire.id); e.stopPropagation(); });
+                        if (this.selectedItem && this.selectedItem.type === 'wire' && this.selectedItem.id === wire.id) {
+                            line.classList.add('selected');
+                        }
+                        board.wireLayer.appendChild(line);
+                    }
+                }
+            });
         });
     }
 
@@ -334,35 +378,48 @@ class InteractionManager {
         }
     }
 
-    handleTouchStart(e) {
+    handleTouchStart(e, board) {
         if (e.touches.length === 2) {
             this.isGestureActive = true;
             this.touchState.mode = 'pinch';
             const p1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             const p2 = { x: e.touches[1].clientX, y: e.touches[1].clientY };
             this.touchState.startDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            this.touchState.startScale = this.touchState.scale;
             
-            const vb = this.board.svg.getAttribute('viewBox').split(' ').map(parseFloat);
-            this.touchState.startViewBox = { x: vb[0], y: vb[1], w: vb[2], h: vb[3] };
+            // For focused zoom
+            this.touchState.startMidpoint = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+            this.touchState.startTranslate = { ...this.touchState.translate };
+
+            if (!document.body.classList.contains('mobile-mode')) {
+                const vb = board.svg.getAttribute('viewBox').split(' ').map(parseFloat);
+                this.touchState.startViewBox = { x: vb[0], y: vb[1], w: vb[2], h: vb[3] };
+                
+                const rect = board.svg.getBoundingClientRect();
+                this.touchState.startRect = rect;
+                if (rect.width > 0 && rect.height > 0) {
+                    this.touchState.svgMidpoint = {
+                        x: vb[0] + (this.touchState.startMidpoint.x - rect.left) * (vb[2] / rect.width),
+                        y: vb[1] + (this.touchState.startMidpoint.y - rect.top) * (vb[3] / rect.height)
+                    };
+                }
+            }
         } else if (e.touches.length === 1 && !this.touchState.mode) {
-            // Only pan if not already pinching
-             // Check if we are starting a drag on a component
-             if (e.target.closest('.component') && !document.body.classList.contains('mobile-mode')) return;
-             
-             // In mobile mode, we prioritize pan over component drag unless it's a specific "long press" or handle, 
-             // but for now, let's allow panning if we touch background.
-             // If we touch a component in mobile mode, we might want to select it (tap). 
-             // We'll differentiate tap vs pan by movement distance.
+            if (e.target.closest('.component') && !document.body.classList.contains('mobile-mode')) return;
              
             this.touchState.mode = 'pan';
             this.touchState.lastPan = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             
-            const vb = this.board.svg.getAttribute('viewBox').split(' ').map(parseFloat);
-            this.touchState.startViewBox = { x: vb[0], y: vb[1], w: vb[2], h: vb[3] };
+            if (!document.body.classList.contains('mobile-mode')) {
+                const vb = board.svg.getAttribute('viewBox').split(' ').map(parseFloat);
+                this.touchState.startViewBox = { x: vb[0], y: vb[1], w: vb[2], h: vb[3] };
+            }
         }
     }
 
-    handleTouchMove(e) {
+    handleTouchMove(e, board) {
+        const isMobile = document.body.classList.contains('mobile-mode');
+        
         if (this.touchState.mode === 'pinch' && e.touches.length === 2) {
             e.preventDefault();
             this.isGestureActive = true;
@@ -372,19 +429,49 @@ class InteractionManager {
             const currentDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
             
             if (this.touchState.startDist > 0) {
-                const scale = this.touchState.startDist / currentDist;
-                const vb = this.touchState.startViewBox;
+                const ratio = currentDist / this.touchState.startDist;
+                const currentMidX = (p1.x + p2.x) / 2;
+                const currentMidY = (p1.y + p2.y) / 2;
                 
-                const newW = vb.w * scale;
-                const newH = vb.h * scale;
-                const dx = (vb.w - newW) / 2;
-                const dy = (vb.h - newH) / 2;
-                
-                // Simple center zoom
-                const newX = vb.x + dx;
-                const newY = vb.y + dy;
-                
-                this.board.svg.setAttribute('viewBox', `${newX} ${newY} ${newW} ${newH}`);
+                if (isMobile) {
+                    const newScale = Math.max(0.5, Math.min(5, this.touchState.startScale * ratio));
+                    const container = document.getElementById('dual-view-container');
+                    const parentRect = container.parentElement.getBoundingClientRect();
+                    
+                    const mx = currentMidX - parentRect.left;
+                    const my = currentMidY - parentRect.top;
+                    const smx = this.touchState.startMidpoint.x - parentRect.left;
+                    const smy = this.touchState.startMidpoint.y - parentRect.top;
+                    
+                    const startMidLocalX = (smx - this.touchState.startTranslate.x) / this.touchState.startScale;
+                    const startMidLocalY = (smy - this.touchState.startTranslate.y) / this.touchState.startScale;
+                    
+                    const nextX = mx - startMidLocalX * newScale;
+                    const nextY = my - startMidLocalY * newScale;
+
+                    if (!isNaN(nextX) && !isNaN(nextY) && !isNaN(newScale)) {
+                        this.touchState.translate.x = nextX;
+                        this.touchState.translate.y = nextY;
+                        this.touchState.scale = newScale;
+                        this.applyGlobalTransform();
+                    }
+                } else {
+                    const scale = 1 / ratio; // Inverse for viewBox
+                    const vb = this.touchState.startViewBox;
+                    const rect = this.touchState.startRect;
+                    const sm = this.touchState.svgMidpoint;
+
+                    if (vb && rect && sm) {
+                        const newW = vb.w * scale;
+                        const newH = vb.h * scale;
+                        const newX = sm.x - (currentMidX - rect.left) * (newW / rect.width);
+                        const newY = sm.y - (currentMidY - rect.top) * (newH / rect.height);
+                        
+                        if (!isNaN(newX) && !isNaN(newY) && !isNaN(newW) && !isNaN(newH) && newW > 0) {
+                            board.svg.setAttribute('viewBox', `${newX} ${newY} ${newW} ${newH}`);
+                        }
+                    }
+                }
             }
         } else if (this.touchState.mode === 'pan' && e.touches.length === 1) {
              const x = e.touches[0].clientX;
@@ -392,49 +479,51 @@ class InteractionManager {
              const dx = x - this.touchState.lastPan.x;
              const dy = y - this.touchState.lastPan.y;
              
-             // Threshold to consider it a pan gesture (vs a sloppy tap)
              if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
                  e.preventDefault();
                  this.isGestureActive = true;
                  
-                 const vb = this.board.svg.getAttribute('viewBox').split(' ').map(parseFloat);
-                 const ctm = this.board.svg.getScreenCTM();
-                 
-                 // Convert screen pixels to SVG units
-                 // scaleX = vbWidth / screenWidth roughly, effectively 1 / ctm.a
-                 const svgDx = dx / ctm.a;
-                 const svgDy = dy / ctm.d;
-                 
-                 const newX = vb[0] - svgDx;
-                 const newY = vb[1] - svgDy;
-                 
-                 this.board.svg.setAttribute('viewBox', `${newX} ${newY} ${vb[2]} ${vb[3]}`);
-                 
+                 if (isMobile) {
+                     this.touchState.translate.x += dx;
+                     this.touchState.translate.y += dy;
+                     this.applyGlobalTransform();
+                 } else {
+                     const vb = board.svg.getAttribute('viewBox').split(' ').map(parseFloat);
+                     const ctm = board.svg.getScreenCTM();
+                     if (ctm) {
+                         const svgDx = dx / ctm.a;
+                         const svgDy = dy / ctm.d;
+                         if (!isNaN(svgDx) && !isNaN(svgDy)) {
+                             board.svg.setAttribute('viewBox', `${vb[0] - svgDx} ${vb[1] - svgDy} ${vb[2]} ${vb[3]}`);
+                         }
+                     }
+                 }
                  this.touchState.lastPan = { x, y };
              }
         }
     }
 
-    handleTouchEnd(e) {
+    handleTouchEnd(e, board) {
         if (e.touches.length === 0) {
             this.touchState.mode = null;
             setTimeout(() => { this.isGestureActive = false; }, 100);
         } else if (e.touches.length === 1 && this.touchState.mode === 'pinch') {
-            // Transition from pinch to pan or just end pinch
             this.touchState.mode = 'pan';
             this.touchState.lastPan = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         }
     }
 
-    handleBoardClick(e) {
-        if (this.isGestureActive) return;
+    handleBoardClick(e, board) {
+        if (this.isGestureActive) {
+            return;
+        }
         const isMobile = document.body.classList.contains('mobile-mode');
         const target = e.target;
 
         if (target.tagName === 'line' && target.classList.contains('wire')) {
-            const wire = this.wires.find(w => w.element === target);
-            if (wire) { 
-                if (!isMobile) this.selectItem('wire', wire.id); 
+            const wireId = this.wires.find(w => w.side === board.side && board.getHoleById(w.startHoleId).cx === parseFloat(target.getAttribute('x1')))?.id;
+            if (wireId) { 
+                if (!isMobile) this.selectItem('wire', wireId); 
                 e.stopPropagation(); 
                 return; 
             }
@@ -453,41 +542,41 @@ class InteractionManager {
             return;
         }
 
-        const pt = Utils.getSVGCoordinates(this.board.svg, e);
-        const hole = this.board.getHoleAt(pt.x, pt.y);
+        const pt = Utils.getSVGCoordinates(board.svg, e);
+        const hole = board.getHoleAt(pt.x, pt.y);
         
         if (isMobile) {
-            // Tap on empty space flips the board
-            this.flipBoard();
+            // In dual view, maybe we don't flip on background click?
+            // Or only if it's NOT a dual view.
+            if (this.boards.length === 1) this.flipBoard();
             return;
         }
 
         if (hole && this.wireModeEnabled) {
-            if (!this.activeWire) { this.startWire(hole); this.deselectAll(); }
-            else { this.endWire(hole); }
+            if (!this.activeWire) { this.startWire(hole, board); this.deselectAll(); }
+            else { this.endWire(hole, board); }
         } else {
             if (this.activeWire) { this.cancelWire(); }
             else if (!compEl) { if (!this.wireModeEnabled) this.deselectAll(); }
         }
     }
 
-    handleBoardMouseDown(e) {
+    handleBoardMouseDown(e, board) {
         if (this.wireModeEnabled) return; 
         const compEl = e.target.closest('.component');
         if (compEl) {
             const id = compEl.dataset.id;
             const comp = this.compManager.getComponentById(id);
-            if (comp && !comp.locked) {
+            if (comp && !comp.locked && comp.mountedSide === board.side) {
                 this.isDraggingExisting = true;
                 this.draggedComponentId = id;
                 this.selectItem('component', id); 
-                comp.element.style.opacity = '0.5';
             }
         }
     }
 
-    handleBoardMouseMove(e) {
-        const pt = Utils.getSVGCoordinates(this.board.svg, e);
+    handleBoardMouseMove(e, board) {
+        const pt = Utils.getSVGCoordinates(board.svg, e);
         const hoverInfo = document.getElementById('hover-info');
         const target = e.target;
         if (target.classList.contains('pin-hover-target')) {
@@ -495,7 +584,7 @@ class InteractionManager {
             const pinLabel = target.dataset.pinLabel;
             hoverInfo.style.display = 'block';
             hoverInfo.innerHTML = `<strong>${compName}</strong>` + (pinLabel ? `<span>Pin: ${pinLabel}</span>` : "");
-            const workspaceRect = this.board.container.getBoundingClientRect();
+            const workspaceRect = board.container.getBoundingClientRect();
             let x = e.clientX - workspaceRect.left + 10;
             let y = e.clientY - workspaceRect.top + 10;
             const tooltipRect = hoverInfo.getBoundingClientRect();
@@ -510,93 +599,97 @@ class InteractionManager {
             this.activeWire.line.setAttribute('y2', pt.y);
         }
         if (this.isDraggingExisting && this.draggedComponentId && !this.wireModeEnabled) {
-            const hole = this.board.getNearestHole(pt.x, pt.y);
+            const hole = board.getNearestHole(pt.x, pt.y);
             if (hole) {
                 const comp = this.compManager.getComponentById(this.draggedComponentId);
                 if (comp.anchorId !== hole.id) {
-                    this.compManager.moveComponent(this.draggedComponentId, hole);
+                    this.compManager.moveComponent(this.draggedComponentId, hole, board);
                 }
             }
         }
     }
     
-    handleBoardMouseUp(e) {
+    handleBoardMouseUp(e, board) {
         if (this.isDraggingExisting) {
-            const comp = this.compManager.getComponentById(this.draggedComponentId);
-            if (comp) comp.element.style.opacity = '1';
             this.isDraggingExisting = false;
             this.draggedComponentId = null;
             this.notifyChange();
         }
     }
 
-    startWire(hole) {
+    startWire(hole, board) {
         const line = Utils.createSVGElement('line', {
             x1: hole.cx, y1: hole.cy, x2: hole.cx, y2: hole.cy,
             stroke: this.currentColor, 'stroke-width': 4, 'stroke-linecap': 'round', opacity: 0.8, 'pointer-events': 'none' 
         });
-        this.wireLayer.appendChild(line);
-        this.activeWire = { startHole: hole, line: line, side: this.board.side };
+        board.wireLayer.appendChild(line);
+        this.activeWire = { startHole: hole, line: line, side: board.side, board: board };
     }
 
-    endWire(hole) {
-        if (hole === this.activeWire.startHole) return; 
-        this.activeWire.line.setAttribute('x2', hole.cx);
-        this.activeWire.line.setAttribute('y2', hole.cy);
-        this.activeWire.line.style.pointerEvents = 'stroke'; 
-        this.activeWire.line.classList.add('wire');
-        const wireData = { id: `wire_${Date.now()}`, start: this.activeWire.startHole, end: hole, element: this.activeWire.line, side: this.activeWire.side };
-        wireData.element.addEventListener('contextmenu', (e) => { e.preventDefault(); this.selectItem('wire', wireData.id); });
+    endWire(hole, board) {
+        if (hole === this.activeWire.startHole || board !== this.activeWire.board) return; 
+        const wireData = { 
+            id: `wire_${Date.now()}`, 
+            startHoleId: this.activeWire.startHole.id, 
+            endHoleId: hole.id, 
+            color: this.currentColor, 
+            side: this.activeWire.side 
+        };
         this.wires.push(wireData);
         this.activeWire = null;
+        this.renderWires();
         this.notifyChange();
     }
 
     cancelWire() {
-        if (this.activeWire) { this.wireLayer.removeChild(this.activeWire.line); this.activeWire = null; }
+        if (this.activeWire) { 
+            this.activeWire.board.wireLayer.removeChild(this.activeWire.line); 
+            this.activeWire = null; 
+        }
     }
 
     removeWire(wire) {
-        this.wireLayer.removeChild(wire.element);
-        this.wires = this.wires.filter(w => w !== wire);
+        this.wires = this.wires.filter(w => w.id !== wire.id);
+        this.renderWires();
         this.notifyChange();
     }
 
     clear(silent = false) {
-        this.wires.forEach(w => this.wireLayer.removeChild(w.element));
         this.wires = [];
-        this.cancelWire();
+        this.activeWire = null;
         this.deselectAll();
-        if (!silent) this.notifyChange();
+        if (!silent) {
+            this.renderWires();
+            this.notifyChange();
+        }
     }
 
-    handleDragOver(e) {
+    handleDragOver(e, board) {
         e.preventDefault();
         if (this.isDraggingNew && this.draggedType) {
-            const pt = Utils.getSVGCoordinates(this.board.svg, e);
-            const hole = this.board.getNearestHole(pt.x, pt.y);
+            const pt = Utils.getSVGCoordinates(board.svg, e);
+            const hole = board.getNearestHole(pt.x, pt.y);
             if (hole) {
-                this.compManager.renderGhost(this.draggedType, hole);
+                this.compManager.renderGhost(this.draggedType, hole, 0, null, board);
             } else {
                 this.compManager.clearGhost();
             }
         }
     }
 
-    handleDragLeave(e) {
-        // Only clear if we actually left the board container
-        if (e.relatedTarget === null || !this.board.container.contains(e.relatedTarget)) {
+    handleDragLeave(e, board) {
+        if (e.relatedTarget === null || !board.container.contains(e.relatedTarget)) {
             this.compManager.clearGhost();
         }
     }
 
-    handleDrop(e) {
+    handleDrop(e, board) {
         e.preventDefault();
         this.compManager.clearGhost();
-        const type = e.dataTransfer.getData('type');
+        const type = e.dataTransfer.getData('type') || this.draggedType;
         if (type) {
-            const pt = Utils.getSVGCoordinates(this.board.svg, e);
-            this.compManager.addComponent(type, pt.x, pt.y);
+            const pt = Utils.getSVGCoordinates(board.svg, e);
+            this.compManager.addComponent(type, pt.x, pt.y, board);
             this.notifyChange();
         }
         this.isDraggingNew = false;
