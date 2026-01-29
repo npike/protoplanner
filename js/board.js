@@ -27,7 +27,10 @@ class Board {
 
     setBoardType(id) {
         this.loadBoardDefinition(id);
-        this.container.innerHTML = '';
+        // Only remove the SVG, preserving any other elements (like labels) in the container
+        if (this.svg && this.svg.parentNode === this.container) {
+            this.container.removeChild(this.svg);
+        }
         this.init();
     }
 
