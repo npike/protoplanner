@@ -1,7 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     try {
-        const VERSION = "v1.0.0";
+        const VERSION = "v1.1";
         document.getElementById('app-version').textContent = VERSION;
+        if (document.getElementById('mobile-version')) {
+            document.getElementById('mobile-version').textContent = VERSION;
+        }
 
         console.log("Initializing...");
         
@@ -95,6 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 w: interactionManager.serialize()
             };
             modifiedLabel.textContent = `Modified: ${timestamp}`;
+            if (document.getElementById('mobile-project-name')) {
+                document.getElementById('mobile-project-name').textContent = nameInput.value || "Untitled Project";
+            }
             
             const encoded = btoa(JSON.stringify(state));
             const url = new URL(window.location);
@@ -108,7 +114,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (encoded) {
                 try {
                     const state = JSON.parse(atob(encoded));
-                    if (state.n) nameInput.value = state.n;
+                    if (state.n) {
+                        nameInput.value = state.n;
+                        if (document.getElementById('mobile-project-name')) {
+                            document.getElementById('mobile-project-name').textContent = state.n;
+                        }
+                    }
                     if (state.m) modifiedLabel.textContent = `Modified: ${state.m}`;
                     if (state.b) {
                         boardSelect.value = state.b;
@@ -179,7 +190,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         btnBOM.onclick = generateBOM;
         closeModal.onclick = () => bomModal.style.display = 'none';
-        window.onclick = (event) => { if (event.target == bomModal) bomModal.style.display = 'none'; };
+        window.onclick = (event) => { 
+            if (event.target == bomModal) bomModal.style.display = 'none'; 
+            if (event.target == document.getElementById('component-details-modal')) document.getElementById('component-details-modal').style.display = 'none';
+        };
         btnCopyBOM.onclick = () => {
             const text = Array.from(bomList.querySelectorAll('.bom-item')).map(el => el.innerText).join('\n');
             navigator.clipboard.writeText(text).then(() => {
@@ -200,6 +214,58 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateURL();
             }
         });
+
+        // Mobile Mode Handling
+        const checkMobile = () => {
+            // Simple check: User Agent or Screen Width
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+            if (isMobile) {
+                document.body.classList.add('mobile-mode');
+                console.log("Mobile mode detected");
+            } else {
+                document.body.classList.remove('mobile-mode');
+            }
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+
+        // Mobile Component Modal Logic
+        const compModal = document.getElementById('component-details-modal');
+        const compDetailName = document.getElementById('comp-detail-name');
+        const compDetailPins = document.getElementById('comp-detail-pins');
+        const closeCompModal = document.getElementById('close-comp-modal');
+
+        document.addEventListener('component-selected-mobile', (e) => {
+            const compId = e.detail.componentId;
+            const comp = compManager.getComponentById(compId);
+            if (!comp) return;
+
+            const def = ComponentRegistry.get(comp.type);
+            compDetailName.textContent = def.name;
+            if (comp.customLabel) {
+                compDetailName.textContent += ` (${comp.customLabel})`;
+            }
+
+            compDetailPins.innerHTML = '';
+            // If component has defined pins with labels
+            if (def.pins && def.pins.length > 0) {
+                def.pins.forEach((pin, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'pin-row';
+                    const pinLabel = pin.label || `Pin ${index + 1}`;
+                    row.innerHTML = `<span class="pin-num">${index + 1}</span><span class="pin-name">${pinLabel}</span>`;
+                    compDetailPins.appendChild(row);
+                });
+            } else {
+                compDetailPins.innerHTML = '<p style="color: #888;">No pin details available.</p>';
+            }
+
+            compModal.style.display = 'block';
+        });
+
+        if (closeCompModal) {
+            closeCompModal.onclick = () => compModal.style.display = 'none';
+        }
 
         console.log("Proto Planner Initialized");
     } catch (e) {

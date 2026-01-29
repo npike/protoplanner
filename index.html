@@ -29,14 +29,24 @@
                 <!-- Components injected here -->
             </div>
             <div class="sidebar-footer">
-                <div id="app-version">v1.0.0</div>
+                <div id="app-version">v1.1</div>
                 <div style="text-align: center; margin-top: 5px;">
-                    <a href="https://github.com/npike/protoplanner" target="_blank" style="font-size: 0.65rem; color: #007acc; text-decoration: none;">Issues/Requests</a>
+                    <a href="https://forms.gle/vVeuLjzA42fAWEKY9" target="_blank" style="font-size: 0.65rem; color: #007acc; text-decoration: none;">Issues/Requests</a>
                 </div>
             </div>
         </div>
 
         <div id="workspace">
+            <div id="mobile-header">
+                <div class="header-main">
+                    <div id="mobile-project-name" style="color: #00aaff; font-size: 0.85rem; margin-bottom: 2px; font-weight: bold;">Untitled Project</div>
+                    <h1>Proto Planner <span id="mobile-version"></span></h1>
+                    <p class="edit-notice">View on desktop to create/edit projects</p>
+                </div>
+                <div class="mobile-instructions">
+                    <span>Tap board to flip</span> • <span>Tap component for pin-out</span> • <span>Pinch to zoom</span>
+                </div>
+            </div>
             <div id="view-overlay">TOP VIEW</div>
             <div id="hover-info"></div>
             <div id="board-container"></div>
@@ -122,6 +132,15 @@
         </div>
     </div>
 
+    <!-- Mobile Component Details Modal -->
+    <div id="component-details-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="close-comp-modal">&times;</span>
+            <h2 id="comp-detail-name">Component Name</h2>
+            <div id="comp-detail-pins" class="pin-list"></div>
+        </div>
+    </div>
+
     <script src="js/utils.js"></script>
     <script src="js/registry.js"></script>
     <script src="js/board-registry.js"></script>
@@ -136,11 +155,12 @@
     <script src="components/potentiometer.js"></script>
     <script src="components/led.js"></script>
     <script src="components/mp1584.js"></script>
-        <script src="components/mosfet-n.js"></script>
-            <script src="components/ne555.js"></script>
-                <script src="components/tactile-switch.js"></script>
-                <script src="components/dip-switch-4.js"></script>
-                <script src="js/board.js"></script>    <script src="js/components.js"></script>
+    <script src="components/mosfet-n.js"></script>
+    <script src="components/ne555.js"></script>
+    <script src="components/tactile-switch.js"></script>
+    <script src="components/dip-switch-4.js"></script>
+    <script src="js/board.js"></script>
+    <script src="js/components.js"></script>
     <script src="js/interaction.js"></script>
     <script src="js/app.js"></script>
 </body>

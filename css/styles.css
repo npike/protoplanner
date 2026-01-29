@@ -185,6 +185,7 @@ body, html {
         linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
     background-size: 20px 20px;
+    touch-action: none; /* Prevent browser zoom/scroll */
 }
 
 #hover-info {
@@ -324,3 +325,117 @@ svg {
 }
 
 #instructions p { margin: 4px 0; }
+
+/* Mobile Mode Styles */
+body.mobile-mode #app {
+    flex-direction: column;
+}
+
+body.mobile-mode #left-sidebar,
+body.mobile-mode #right-sidebar {
+    display: none !important;
+}
+
+body.mobile-mode #workspace {
+    width: 100%;
+    height: 100%;
+    flex-grow: 1;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+}
+
+#mobile-header {
+    display: none;
+    width: 100%;
+    padding: 12px 15px;
+    background: var(--sidebar-bg);
+    border-bottom: 1px solid var(--border-color);
+    box-sizing: border-box;
+    text-align: center;
+    z-index: 20;
+    flex-shrink: 0;
+}
+
+body.mobile-mode #mobile-header {
+    display: block;
+}
+
+#mobile-header h1 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #fff;
+    line-height: 1.2;
+}
+
+#mobile-header h1 span {
+    font-size: 0.65rem;
+    font-family: monospace;
+    color: #666;
+    font-weight: normal;
+    margin-left: 5px;
+}
+
+.edit-notice {
+    margin: 2px 0 0 0;
+    font-size: 0.65rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mobile-instructions {
+    margin-top: 10px;
+    font-size: 0.65rem;
+    color: #555;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-top: 1px solid rgba(255,255,255,0.03);
+    padding-top: 8px;
+}
+
+body.mobile-mode #board-container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+body.mobile-mode #view-overlay {
+    display: none;
+}
+
+body.mobile-mode #hover-info {
+    display: none !important; /* Disable standard hover tooltip in mobile */
+}
+
+/* Mobile Component Modal */
+.pin-list {
+    margin-top: 15px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.pin-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #333;
+    font-size: 0.9rem;
+}
+
+.pin-row:last-child {
+    border-bottom: none;
+}
+
+.pin-num {
+    color: #888;
+}
+
+.pin-name {
+    color: #fff;
+    font-weight: bold;
+}

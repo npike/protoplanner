@@ -19,6 +19,15 @@ class InteractionManager {
         this.selectedItem = null; // { type: 'component'|'wire', id: '...' }
         this.wireModeEnabled = false;
         this.onStateChange = null;
+        
+        // Mobile Gesture State
+        this.isGestureActive = false;
+        this.touchState = {
+            mode: null, // 'pan', 'pinch'
+            startDist: 0,
+            startViewBox: null,
+            lastPan: { x: 0, y: 0 }
+        };
 
         this.initListeners();
         this.initSidebarControls();
@@ -60,13 +69,7 @@ class InteractionManager {
         document.addEventListener('keydown', (e) => this.handleKeyDown(e));
 
         // Board Interactions
-        // Note: we might need to re-attach these if board.svg changes, but for now we attach to workspace or the svg
-        // Actually, Board.init appends a NEW svg to the container.
-        // So we should delegate or re-attach.
         this.attachToBoard();
-        
-        // Double Click (Rotate)
-        // ... (rest of logic moved to attachToBoard or kept if it uses delegation)
         
         // Sidebar Draggables (New Components)
         const draggables = document.querySelectorAll('.component-item');
@@ -121,6 +124,11 @@ class InteractionManager {
                 e.stopPropagation();
             }
         });
+
+        // Touch Gestures (Pinch/Pan)
+        this.board.svg.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+        this.board.svg.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+        this.board.svg.addEventListener('touchend', (e) => this.handleTouchEnd(e));
     }
     
     initSidebarControls() {
@@ -326,18 +334,134 @@ class InteractionManager {
         }
     }
 
+    handleTouchStart(e) {
+        if (e.touches.length === 2) {
+            this.isGestureActive = true;
+            this.touchState.mode = 'pinch';
+            const p1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            const p2 = { x: e.touches[1].clientX, y: e.touches[1].clientY };
+            this.touchState.startDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            
+            const vb = this.board.svg.getAttribute('viewBox').split(' ').map(parseFloat);
+            this.touchState.startViewBox = { x: vb[0], y: vb[1], w: vb[2], h: vb[3] };
+        } else if (e.touches.length === 1 && !this.touchState.mode) {
+            // Only pan if not already pinching
+             // Check if we are starting a drag on a component
+             if (e.target.closest('.component') && !document.body.classList.contains('mobile-mode')) return;
+             
+             // In mobile mode, we prioritize pan over component drag unless it's a specific "long press" or handle, 
+             // but for now, let's allow panning if we touch background.
+             // If we touch a component in mobile mode, we might want to select it (tap). 
+             // We'll differentiate tap vs pan by movement distance.
+             
+            this.touchState.mode = 'pan';
+            this.touchState.lastPan = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            
+            const vb = this.board.svg.getAttribute('viewBox').split(' ').map(parseFloat);
+            this.touchState.startViewBox = { x: vb[0], y: vb[1], w: vb[2], h: vb[3] };
+        }
+    }
+
+    handleTouchMove(e) {
+        if (this.touchState.mode === 'pinch' && e.touches.length === 2) {
+            e.preventDefault();
+            this.isGestureActive = true;
+            
+            const p1 = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            const p2 = { x: e.touches[1].clientX, y: e.touches[1].clientY };
+            const currentDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            
+            if (this.touchState.startDist > 0) {
+                const scale = this.touchState.startDist / currentDist;
+                const vb = this.touchState.startViewBox;
+                
+                const newW = vb.w * scale;
+                const newH = vb.h * scale;
+                const dx = (vb.w - newW) / 2;
+                const dy = (vb.h - newH) / 2;
+                
+                // Simple center zoom
+                const newX = vb.x + dx;
+                const newY = vb.y + dy;
+                
+                this.board.svg.setAttribute('viewBox', `${newX} ${newY} ${newW} ${newH}`);
+            }
+        } else if (this.touchState.mode === 'pan' && e.touches.length === 1) {
+             const x = e.touches[0].clientX;
+             const y = e.touches[0].clientY;
+             const dx = x - this.touchState.lastPan.x;
+             const dy = y - this.touchState.lastPan.y;
+             
+             // Threshold to consider it a pan gesture (vs a sloppy tap)
+             if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+                 e.preventDefault();
+                 this.isGestureActive = true;
+                 
+                 const vb = this.board.svg.getAttribute('viewBox').split(' ').map(parseFloat);
+                 const ctm = this.board.svg.getScreenCTM();
+                 
+                 // Convert screen pixels to SVG units
+                 // scaleX = vbWidth / screenWidth roughly, effectively 1 / ctm.a
+                 const svgDx = dx / ctm.a;
+                 const svgDy = dy / ctm.d;
+                 
+                 const newX = vb[0] - svgDx;
+                 const newY = vb[1] - svgDy;
+                 
+                 this.board.svg.setAttribute('viewBox', `${newX} ${newY} ${vb[2]} ${vb[3]}`);
+                 
+                 this.touchState.lastPan = { x, y };
+             }
+        }
+    }
+
+    handleTouchEnd(e) {
+        if (e.touches.length === 0) {
+            this.touchState.mode = null;
+            setTimeout(() => { this.isGestureActive = false; }, 100);
+        } else if (e.touches.length === 1 && this.touchState.mode === 'pinch') {
+            // Transition from pinch to pan or just end pinch
+            this.touchState.mode = 'pan';
+            this.touchState.lastPan = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+    }
+
     handleBoardClick(e) {
+        if (this.isGestureActive) return;
+        const isMobile = document.body.classList.contains('mobile-mode');
         const target = e.target;
+
         if (target.tagName === 'line' && target.classList.contains('wire')) {
             const wire = this.wires.find(w => w.element === target);
-            if (wire) { this.selectItem('wire', wire.id); e.stopPropagation(); return; }
+            if (wire) { 
+                if (!isMobile) this.selectItem('wire', wire.id); 
+                e.stopPropagation(); 
+                return; 
+            }
         }
-        const compEl = target.closest('.component');
-        if (compEl && !this.wireModeEnabled) {
-            this.selectItem('component', compEl.dataset.id); e.stopPropagation(); return;
+        
+        const compEl = target.closest('.component') || target.closest('.component-pins');
+        if (compEl) {
+            if (isMobile) {
+                document.dispatchEvent(new CustomEvent('component-selected-mobile', { 
+                    detail: { componentId: compEl.dataset.id } 
+                }));
+            } else if (!this.wireModeEnabled && compEl.classList.contains('component')) {
+                this.selectItem('component', compEl.dataset.id);
+            }
+            e.stopPropagation(); 
+            return;
         }
+
         const pt = Utils.getSVGCoordinates(this.board.svg, e);
         const hole = this.board.getHoleAt(pt.x, pt.y);
+        
+        if (isMobile) {
+            // Tap on empty space flips the board
+            this.flipBoard();
+            return;
+        }
+
         if (hole && this.wireModeEnabled) {
             if (!this.activeWire) { this.startWire(hole); this.deselectAll(); }
             else { this.endWire(hole); }
