@@ -263,6 +263,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             interactionManager.selectItem('component', compId);
 
+            if (comp.locked) {
+                console.log("Component is locked, suppressing detail view.");
+                return;
+            }
+
             // If we are in dual view mode, show a tooltip instead of a modal
             if (boardTop && boardBottom) {
                 const hoverInfo = document.getElementById('hover-info');
