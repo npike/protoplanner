@@ -266,6 +266,47 @@ class InteractionManager {
                 this.compManager.adjustPitch(this.selectedItem.id, -1);
                 this.notifyChange();
             }
+        } else if (e.key === 'ArrowUp') {
+            this.moveSelectedComponent(0, -1);
+            e.preventDefault();
+        } else if (e.key === 'ArrowDown') {
+            this.moveSelectedComponent(0, 1);
+            e.preventDefault();
+        } else if (e.key === 'ArrowLeft') {
+            this.moveSelectedComponent(-1, 0);
+            e.preventDefault();
+        } else if (e.key === 'ArrowRight') {
+            this.moveSelectedComponent(1, 0);
+            e.preventDefault();
+        }
+    }
+
+    moveSelectedComponent(dx, dy) {
+        if (!this.selectedItem || this.selectedItem.type !== 'component') return;
+        
+        const comp = this.compManager.getComponentById(this.selectedItem.id);
+        if (!comp || comp.locked) return;
+        
+        const board = this.primaryBoard;
+        const currentHole = board.getHoleById(comp.anchorId);
+        if (!currentHole) return;
+
+        // Logical coordinates movement
+        // Note: For 'bottom' side, we still move logical coordinates, 
+        // the board.getX/getY handles the visual mirroring.
+        const nextLX = currentHole.lx + dx;
+        const nextLY = currentHole.ly + dy;
+        
+        const nextHole = board.getHoleByLogical(nextLX, nextLY);
+        if (nextHole) {
+            const moved = this.compManager.moveComponent(comp.id, nextHole, board);
+            if (moved) {
+                this.notifyChange();
+            } else {
+                // Flash red if it doesn't fit
+                this.compManager.renderGhost(comp.type, nextHole, comp.rotation, comp.pitch, board);
+                setTimeout(() => this.compManager.clearGhost(), 300);
+            }
         }
     }
 
