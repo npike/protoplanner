@@ -258,14 +258,37 @@ class ComponentManager {
         const comp = this.getComponentById(id);
         if (comp) {
             comp.selected = isSel;
-            this.renderAll();
+            
+            this.boards.forEach(board => {
+                const el = board.componentLayer.querySelector(`[data-id="${id}"]`);
+                if (el) {
+                    if (isSel) {
+                        el.classList.add('selected');
+                        // If it's the pins view, highlight all pins
+                        if (el.classList.contains('component-pins')) {
+                            el.querySelectorAll('circle').forEach(c => c.classList.add('pin-highlight'));
+                        }
+                    } else {
+                        el.classList.remove('selected');
+                        if (el.classList.contains('component-pins')) {
+                            el.querySelectorAll('circle').forEach(c => c.classList.remove('pin-highlight'));
+                        }
+                    }
+                }
+            });
         }
     }
     toggleLock(id) {
         const comp = this.getComponentById(id);
         if (comp) { 
             comp.locked = !comp.locked; 
-            this.renderAll();
+            this.boards.forEach(board => {
+                const el = board.componentLayer.querySelector(`[data-id="${id}"]`);
+                if (el && el.classList.contains('component')) {
+                    if (comp.locked) el.classList.add('locked');
+                    else el.classList.remove('locked');
+                }
+            });
             return comp.locked; 
         }
         return false;
