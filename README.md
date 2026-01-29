@@ -6,7 +6,7 @@ Proto Planner is a simple utility designed to assist in transferring circuits fr
 
 ### Key Features
 
-*   **Double-Sided Design:** Switch between Top and Bottom views to plan component placement and complex wiring on both sides of the board.
+*   **Side-by-Side Dual View:** View both Top and Bottom sides of your board simultaneously for efficient planning of component placement and complex wiring.
 *   **Customizable Wiring:** Draw wires in a variety of colors to organize and distinguish different signal paths.
 *   **Component Management:** Rotate components for optimal layout and lock them in place to prevent accidental movement.
 *   **URL-Based Sharing:** Project state is encoded directly into the URL. Simply copy and share the link to save your progress or send it to others.
@@ -31,8 +31,7 @@ A growing selection of common through-hole components is available:
 
 ## Screenshots
 
-![Proto Planner Screenshot](screenshots/Screenshot%202026-01-27%20at%208.21.27%E2%80%AFPM.png)
-![Proto Planner Screenshot](screenshots/Screenshot%202026-01-27%20at%208.21.56%E2%80%AFPM.png)
+![Proto Planner Screenshot](screenshots/Screenshot%202026-01-28%20at%208.26.47%E2%80%AFPM.png)
 
 ## Usage and Limitations
 
