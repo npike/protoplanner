@@ -245,6 +245,11 @@ svg {
 .component.locked { cursor: not-allowed; }
 .component.locked rect { stroke: #ff4444; }
 
+/* Hide locked indicator (red border) on mobile */
+body.mobile-mode .component.locked rect {
+    stroke: none;
+}
+
 #selection-panel {
     display: none;
     background: #2d2d30;
