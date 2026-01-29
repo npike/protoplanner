@@ -4,10 +4,10 @@ ComponentRegistry.register({
     "category": "Power",
     "pins": [
         // Inputs on the LEFT (Single Column)
-        { "dx": 0, "dy": 0, "label": "IN+" },
-        { "dx": 0, "dy": 1, "label": "IN+" },
-        { "dx": 0, "dy": 5, "label": "IN-" },
-        { "dx": 0, "dy": 6, "label": "IN-" },
+        { "dx": 0, "dy": 0, "label": "IN-" },
+        { "dx": 0, "dy": 1, "label": "IN-" },
+        { "dx": 0, "dy": 5, "label": "IN+" },
+        { "dx": 0, "dy": 6, "label": "IN+" },
         
         // Outputs on the RIGHT (Single Column)
         { "dx": 8, "dy": 0, "label": "OUT-" },

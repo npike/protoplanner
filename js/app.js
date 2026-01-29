@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     try {
-        const VERSION = "v1.1";
+        const VERSION = "v1.2";
         document.getElementById('app-version').textContent = VERSION;
         if (document.getElementById('mobile-version')) {
             document.getElementById('mobile-version').textContent = VERSION;
