@@ -588,7 +588,9 @@ class InteractionManager {
         const pt = Utils.getSVGCoordinates(board.svg, e);
         const hoverInfo = document.getElementById('hover-info');
         const target = e.target;
-        if (target.classList.contains('pin-hover-target')) {
+        const isMobile = document.body.classList.contains('mobile-mode');
+
+        if (target.classList.contains('pin-hover-target') && !isMobile) {
             const compName = target.dataset.compName;
             const pinLabel = target.dataset.pinLabel;
             hoverInfo.style.display = 'block';
