@@ -42,7 +42,7 @@ class InteractionManager {
 
     applyGlobalTransform() {
         const container = document.getElementById('dual-view-container');
-        if (container && (document.body.classList.contains('mobile-mode') || document.body.classList.contains('dual-view-mode'))) {
+        if (container) {
             container.style.willChange = 'transform';
             container.style.transform = `translate(${this.touchState.translate.x}px, ${this.touchState.translate.y}px) scale(${this.touchState.scale})`;
         }
@@ -196,7 +196,6 @@ class InteractionManager {
         const btnRotate = document.getElementById('btn-rotate');
         const btnLock = document.getElementById('btn-lock');
         const btnDelete = document.getElementById('btn-delete');
-        const btnFlip = document.getElementById('btn-flip');
         const btnWireMode = document.getElementById('btn-wire-mode');
         const btnPitchInc = document.getElementById('btn-pitch-inc');
         const btnPitchDec = document.getElementById('btn-pitch-dec');
@@ -216,9 +215,6 @@ class InteractionManager {
         });
         if(btnDelete) btnDelete.addEventListener('click', () => {
             this.deleteSelected();
-        });
-        if(btnFlip) btnFlip.addEventListener('click', () => {
-            this.flipBoard();
         });
         if(btnWireMode) btnWireMode.addEventListener('click', () => {
             this.toggleWireMode();
@@ -258,10 +254,6 @@ class InteractionManager {
                 this.compManager.toggleLock(this.selectedItem.id);
                 this.notifyChange();
             }
-        } else if (e.key.toLowerCase() === 'f') {
-            this.flipBoard();
-        } else if (e.key.toLowerCase() === 'v') {
-            if (window.toggleDualView) window.toggleDualView();
         } else if (e.key.toLowerCase() === 'w') {
             this.toggleWireMode();
         } else if (e.key === '+' || e.key === '=') {
@@ -289,16 +281,6 @@ class InteractionManager {
         if (!this.wireModeEnabled && this.activeWire) {
             this.cancelWire();
         }
-    }
-
-    flipBoard() {
-        if (this.boards.length > 1) return;
-        const board = this.primaryBoard;
-        const newSide = board.side === 'top' ? 'bottom' : 'top';
-        board.setSide(newSide);
-        this.compManager.renderAll();
-        this.renderWires();
-        this.deselectAll();
     }
 
     renderWires() {
@@ -551,14 +533,11 @@ class InteractionManager {
         if (this.isGestureActive) {
             return;
         }
-        const isMobile = document.body.classList.contains('mobile-mode');
-        const isDualView = document.body.classList.contains('dual-view-mode');
         const target = e.target;
 
         if (target.tagName === 'line' && target.classList.contains('wire')) {
             const wireId = this.wires.find(w => w.side === board.side && board.getHoleById(w.startHoleId).cx === parseFloat(target.getAttribute('x1')))?.id;
             if (wireId) { 
-                if (!isMobile && !isDualView) this.selectItem('wire', wireId); 
                 e.stopPropagation(); 
                 return; 
             }
@@ -566,17 +545,13 @@ class InteractionManager {
         
         const compEl = target.closest('.component') || target.closest('.component-pins');
         if (compEl) {
-            if (isMobile || isDualView) {
-                document.dispatchEvent(new CustomEvent('component-selected-mobile', { 
-                    detail: { 
-                        componentId: compEl.dataset.id,
-                        x: e.clientX,
-                        y: e.clientY
-                    } 
-                }));
-            } else if (!this.wireModeEnabled && compEl.classList.contains('component')) {
-                this.selectItem('component', compEl.dataset.id);
-            }
+            document.dispatchEvent(new CustomEvent('component-selected-mobile', { 
+                detail: { 
+                    componentId: compEl.dataset.id,
+                    x: e.clientX,
+                    y: e.clientY
+                } 
+            }));
             e.stopPropagation(); 
             return;
         }
@@ -584,13 +559,6 @@ class InteractionManager {
         const pt = Utils.getSVGCoordinates(board.svg, e);
         const hole = board.getHoleAt(pt.x, pt.y);
         
-        if (isMobile || isDualView) {
-            // In dual view, maybe we don't flip on background click?
-            // Or only if it's NOT a dual view.
-            if (this.boards.length === 1) this.flipBoard();
-            return;
-        }
-
         if (hole && this.wireModeEnabled) {
             if (!this.activeWire) { this.startWire(hole, board); this.deselectAll(); }
             else { this.endWire(hole, board); }

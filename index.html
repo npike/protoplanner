@@ -50,7 +50,6 @@
                     <span>Tap component for pin-out & highlight</span> • <span>Pinch to zoom</span>
                 </div>
             </div>
-            <div id="view-overlay">TOP VIEW</div>
             <div id="hover-info"></div>
             <div id="dual-view-container">
                 <div id="board-container-top" class="board-pane">
@@ -115,19 +114,16 @@
                     </select>
                 </div>
                 <button id="btn-wire-mode" class="btn" style="background: #444;">Wire Mode: OFF (W)</button>
-                <button id="btn-dual-view" class="btn" style="margin-top: 10px; background: #444;">Dual View: OFF (V)</button>
-                <button id="btn-flip" class="btn btn-primary" style="margin-top: 10px;">Flip Board (F)</button>
                 <button id="btn-bom" class="btn" style="margin-top: 10px; background: #2e7d32;">Generate BOM</button>
             </div>
-
-            <div id="instructions">
+            
+            <div id="instructions" style="margin-top: auto; font-size: 0.8rem; color: #888; border-top: 1px solid var(--border-color); padding-top: 10px;">
                 <button id="clear-btn" style="width: 100%; padding: 10px; margin-bottom: 15px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer;">Clear Board</button>
                 <p><strong>W</strong> to toggle Wire Mode.</p>
                 <p><strong>Drag</strong> components to move.</p>
                 <p><strong>Click</strong> to select.</p>
                 <p><strong>Esc</strong> to cancel/deselect.</p>
                 <p><strong>Del</strong> to remove selected.</p>
-                <p><strong>F</strong> to flip board.</p>
                 <p><strong>R</strong> to rotate.</p>
                 <p><strong>L</strong> to lock.</p>
             </div>
@@ -141,15 +137,6 @@
             <h2>Bill of Materials</h2>
             <div id="bom-list"></div>
             <button id="btn-copy-bom" class="btn btn-primary" style="margin-top: 20px;">Copy to Clipboard</button>
-        </div>
-    </div>
-
-    <!-- Mobile Component Details Modal -->
-    <div id="component-details-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" id="close-comp-modal">&times;</span>
-            <h2 id="comp-detail-name">Component Name</h2>
-            <div id="comp-detail-pins" class="pin-list"></div>
         </div>
     </div>
 

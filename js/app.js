@@ -27,73 +27,19 @@ document.addEventListener('DOMContentLoaded', () => {
             boardSelect.appendChild(opt);
         });
 
-        let board, boardTop, boardBottom;
-        if (isMobile) {
-            boardTop = new Board('board-container-top');
-            boardTop.setSide('top');
-            boardBottom = new Board('board-container-bottom');
-            boardBottom.setSide('bottom');
-            board = boardTop; // Reference for generic checks
-        } else {
-            board = new Board('board-container');
-        }
+        let boardTop, boardBottom;
+        boardTop = new Board('board-container-top');
+        boardTop.setSide('top');
+        boardBottom = new Board('board-container-bottom');
+        boardBottom.setSide('bottom');
         
-        console.log("Board(s) initialized");
+        console.log("Boards initialized");
         
-        const compManager = new ComponentManager(isMobile ? [boardTop, boardBottom] : [board]);
+        const compManager = new ComponentManager([boardTop, boardBottom]);
         console.log("ComponentManager initialized");
         
-        const interactionManager = new InteractionManager(isMobile ? [boardTop, boardBottom] : [board], compManager);
+        const interactionManager = new InteractionManager([boardTop, boardBottom], compManager);
         console.log("InteractionManager initialized");
-
-        window.toggleDualView = (forceEnable = null) => {
-            const currentlyEnabled = document.body.classList.contains('dual-view-mode');
-            const shouldEnable = forceEnable !== null ? forceEnable : !currentlyEnabled;
-            
-            if (shouldEnable === currentlyEnabled && forceEnable === null) return;
-            
-            const btn = document.getElementById('btn-dual-view');
-            
-            if (shouldEnable) {
-                document.body.classList.add('dual-view-mode');
-                if (btn) btn.textContent = "Dual View: ON (V)";
-                if (btn) btn.style.background = "#007acc";
-                
-                // Initialize top/bottom boards if they don't exist
-                if (!boardTop) {
-                    boardTop = new Board('board-container-top');
-                    boardTop.setSide('top');
-                    boardTop.setBoardType(board.currentDefId);
-                }
-                if (!boardBottom) {
-                    boardBottom = new Board('board-container-bottom');
-                    boardBottom.setSide('bottom');
-                    boardBottom.setBoardType(board.currentDefId);
-                }
-                
-                // Update managers to use dual boards
-                compManager.boards = [boardTop, boardBottom];
-                interactionManager.boards = [boardTop, boardBottom];
-                interactionManager.resetGlobalTransform();
-            } else {
-                document.body.classList.remove('dual-view-mode');
-                if (btn) btn.textContent = "Dual View: OFF (V)";
-                if (btn) btn.style.background = "#444";
-                
-                // Update managers to use primary single board
-                compManager.boards = [board];
-                interactionManager.boards = [board];
-                interactionManager.resetGlobalTransform();
-            }
-            
-            // Refresh view
-            compManager.renderAll();
-            interactionManager.renderWires();
-            interactionManager.attachToBoard();
-        };
-
-        const btnDualView = document.getElementById('btn-dual-view');
-        if (btnDualView) btnDualView.onclick = () => window.toggleDualView();
 
         // 2. Initialize Component Palette (Dynamic Sidebar)
         const palette = document.getElementById('component-palette');
@@ -161,7 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const state = {
                 n: nameInput.value,
                 m: timestamp,
-                b: (isMobile ? boardTop : board).currentDefId,
+                b: boardTop.currentDefId,
                 c: compManager.serialize(),
                 w: interactionManager.serialize()
             };
@@ -191,14 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (state.m) modifiedLabel.textContent = `Modified: ${state.m}`;
                     if (state.b) {
                         boardSelect.value = state.b;
-                        if (isMobile) {
-                            boardTop.setBoardType(state.b);
-                            boardBottom.setBoardType(state.b);
-                        } else {
-                            board.setBoardType(state.b);
-                            if (boardTop) boardTop.setBoardType(state.b);
-                            if (boardBottom) boardBottom.setBoardType(state.b);
-                        }
+                        boardTop.setBoardType(state.b);
+                        boardBottom.setBoardType(state.b);
                         // Re-attach listeners to new board SVG
                         interactionManager.attachToBoard();
                     }
@@ -216,21 +156,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const proceed = !hasContent || confirm('Changing board type will clear your current project. Continue?');
             
             if (proceed) {
-                if (isMobile) {
-                    boardTop.setBoardType(boardSelect.value);
-                    boardBottom.setBoardType(boardSelect.value);
-                } else {
-                    board.setBoardType(boardSelect.value);
-                    if (boardTop) boardTop.setBoardType(boardSelect.value);
-                    if (boardBottom) boardBottom.setBoardType(boardSelect.value);
-                }
+                boardTop.setBoardType(boardSelect.value);
+                boardBottom.setBoardType(boardSelect.value);
                 compManager.clear(true);
                 interactionManager.clear(true);
                 // Re-attach listeners to new board SVG
                 interactionManager.attachToBoard();
                 updateURL();
             } else {
-                boardSelect.value = (isMobile ? boardTop : board).currentDefId;
+                boardSelect.value = boardTop.currentDefId;
             }
         };
 
@@ -276,10 +210,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (event.target == bomModal) {
                 bomModal.style.display = 'none';
             }
-            if (event.target == document.getElementById('component-details-modal')) {
-                document.getElementById('component-details-modal').style.display = 'none';
-                interactionManager.deselectAll();
-            }
             // If clicking workspace background (not a component), deselect all will hide tooltip
         };
         btnCopyBOM.onclick = () => {
@@ -303,12 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Mobile Component Modal Logic
-        const compModal = document.getElementById('component-details-modal');
-        const compDetailName = document.getElementById('comp-detail-name');
-        const compDetailPins = document.getElementById('comp-detail-pins');
-        const closeCompModal = document.getElementById('close-comp-modal');
-
+        // Tooltip interaction logic
         document.addEventListener('component-selected-mobile', (e) => {
             const compId = e.detail.componentId;
             const comp = compManager.getComponentById(compId);
@@ -316,62 +241,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
             interactionManager.selectItem('component', compId);
 
-            // If we are in dual view mode, show a tooltip instead of a modal
-            if (boardTop && boardBottom) {
-                const hoverInfo = document.getElementById('hover-info');
-                const workspace = document.getElementById('workspace');
-                if (hoverInfo && workspace) {
-                    const workspaceRect = workspace.getBoundingClientRect();
-                    const def = ComponentRegistry.get(comp.type);
-                    hoverInfo.innerHTML = `<strong>${def.name}</strong>` + (comp.customLabel ? `<span>${comp.customLabel}</span>` : "");
-                    hoverInfo.classList.add('mobile-visible');
-                    
-                    // Position relative to workspace parent
-                    const x = e.detail.x - workspaceRect.left;
-                    const y = e.detail.y - workspaceRect.top;
-                    
-                    let left = x + 10;
-                    let top = y - 40; // Above the finger
-                    
-                    if (left + 150 > workspaceRect.width) left = x - 160;
-                    if (top < 10) top = y + 20;
+            const hoverInfo = document.getElementById('hover-info');
+            const workspace = document.getElementById('workspace');
+            if (hoverInfo && workspace) {
+                const workspaceRect = workspace.getBoundingClientRect();
+                const def = ComponentRegistry.get(comp.type);
+                hoverInfo.innerHTML = `<strong>${def.name}</strong>` + (comp.customLabel ? `<span>${comp.customLabel}</span>` : "");
+                hoverInfo.classList.add('mobile-visible');
+                
+                // Position relative to workspace parent
+                const x = e.detail.x - workspaceRect.left;
+                const y = e.detail.y - workspaceRect.top;
+                
+                let left = x + 10;
+                let top = y - 40; // Above the finger
+                
+                if (left + 150 > workspaceRect.width) left = x - 160;
+                if (top < 10) top = y + 20;
 
-                    hoverInfo.style.left = left + 'px';
-                    hoverInfo.style.top = top + 'px';
-                }
-                console.log("Dual view active, showing tooltip instead of modal.");
-                return;
+                hoverInfo.style.left = left + 'px';
+                hoverInfo.style.top = top + 'px';
             }
-
-            const def = ComponentRegistry.get(comp.type);
-            compDetailName.textContent = def.name;
-            if (comp.customLabel) {
-                compDetailName.textContent += ` (${comp.customLabel})`;
-            }
-
-            compDetailPins.innerHTML = '';
-            // If component has defined pins with labels
-            if (def.pins && def.pins.length > 0) {
-                def.pins.forEach((pin, index) => {
-                    const row = document.createElement('div');
-                    row.className = 'pin-row';
-                    const pinLabel = pin.label || `Pin ${index + 1}`;
-                    row.innerHTML = `<span class="pin-num">${index + 1}</span><span class="pin-name">${pinLabel}</span>`;
-                    compDetailPins.appendChild(row);
-                });
-            } else {
-                compDetailPins.innerHTML = '<p style="color: #888;">No pin details available.</p>';
-            }
-
-            compModal.style.display = 'block';
         });
-
-        if (closeCompModal) {
-            closeCompModal.onclick = () => {
-                compModal.style.display = 'none';
-                interactionManager.deselectAll();
-            };
-        }
 
         console.log("Proto Planner Initialized");
     } catch (e) {

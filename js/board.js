@@ -59,19 +59,12 @@ class Board {
         this.svg.appendChild(this.componentLayer);
         this.svg.appendChild(this.ghostLayer);
 
-        const overlay = document.getElementById('view-overlay');
-        const isMobile = document.body.classList.contains('mobile-mode');
-        if (overlay && !isMobile) overlay.textContent = this.side.toUpperCase() + ' VIEW';
-
         this.render();
     }
     
     setSide(side) {
         if (this.side !== side) {
             this.side = side;
-            const overlay = document.getElementById('view-overlay');
-            const isMobile = document.body.classList.contains('mobile-mode');
-            if (overlay && !isMobile) overlay.textContent = side.toUpperCase() + ' VIEW';
             this.render();
         }
     }
