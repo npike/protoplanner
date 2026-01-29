@@ -111,13 +111,6 @@ class InteractionManager {
             });
         }
 
-        // Drop Zone
-        this.boards.forEach(board => {
-            board.container.addEventListener('dragover', (e) => this.handleDragOver(e, board));
-            board.container.addEventListener('dragleave', (e) => this.handleDragLeave(e, board));
-            board.container.addEventListener('drop', (e) => this.handleDrop(e, board));
-        });
-
         // Color Palette
         document.querySelectorAll('.color-swatch').forEach(swatch => {
             swatch.addEventListener('click', (e) => {
@@ -141,11 +134,26 @@ class InteractionManager {
 
     attachToBoard() {
         this.boards.forEach(board => {
-            board.svg.addEventListener('click', (e) => this.handleBoardClick(e, board));
-            board.svg.addEventListener('mousedown', (e) => this.handleBoardMouseDown(e, board));
-            board.svg.addEventListener('mousemove', (e) => this.handleBoardMouseMove(e, board));
-            board.svg.addEventListener('mouseup', (e) => this.handleBoardMouseUp(e, board));
-            board.svg.addEventListener('dblclick', (e) => {
+            // Remove existing listeners to prevent duplicates
+            board.svg.removeEventListener('click', board._clickRef);
+            board.svg.removeEventListener('mousedown', board._mdRef);
+            board.svg.removeEventListener('mousemove', board._mmRef);
+            board.svg.removeEventListener('mouseup', board._muRef);
+            board.svg.removeEventListener('dblclick', board._dblRef);
+            board.svg.removeEventListener('touchstart', board._tsRef);
+            board.svg.removeEventListener('touchmove', board._tmRef);
+            board.svg.removeEventListener('touchend', board._teRef);
+            
+            board.container.removeEventListener('dragover', board._doRef);
+            board.container.removeEventListener('dragleave', board._dlRef);
+            board.container.removeEventListener('drop', board._drRef);
+
+            // Create and store references for removal
+            board._clickRef = (e) => this.handleBoardClick(e, board);
+            board._mdRef = (e) => this.handleBoardMouseDown(e, board);
+            board._mmRef = (e) => this.handleBoardMouseMove(e, board);
+            board._muRef = (e) => this.handleBoardMouseUp(e, board);
+            board._dblRef = (e) => {
                 const componentEl = e.target.closest('.component');
                 if (componentEl) {
                     const id = componentEl.dataset.id;
@@ -156,12 +164,31 @@ class InteractionManager {
                     }
                     e.stopPropagation();
                 }
-            });
+            };
+            board._tsRef = (e) => this.handleTouchStart(e, board);
+            board._tmRef = (e) => this.handleTouchMove(e, board);
+            board._teRef = (e) => this.handleTouchEnd(e, board);
+
+            board._doRef = (e) => this.handleDragOver(e, board);
+            board._dlRef = (e) => this.handleDragLeave(e, board);
+            board._drRef = (e) => this.handleDrop(e, board);
+
+            // Add listeners
+            board.svg.addEventListener('click', board._clickRef);
+            board.svg.addEventListener('mousedown', board._mdRef);
+            board.svg.addEventListener('mousemove', board._mmRef);
+            board.svg.addEventListener('mouseup', board._muRef);
+            board.svg.addEventListener('dblclick', board._dblRef);
 
             // Touch Gestures (Pinch/Pan)
-            board.svg.addEventListener('touchstart', (e) => this.handleTouchStart(e, board), { passive: false });
-            board.svg.addEventListener('touchmove', (e) => this.handleTouchMove(e, board), { passive: false });
-            board.svg.addEventListener('touchend', (e) => this.handleTouchEnd(e, board));
+            board.svg.addEventListener('touchstart', board._tsRef, { passive: false });
+            board.svg.addEventListener('touchmove', board._tmRef, { passive: false });
+            board.svg.addEventListener('touchend', board._teRef);
+
+            // Drop Zones
+            board.container.addEventListener('dragover', board._doRef);
+            board.container.addEventListener('dragleave', board._dlRef);
+            board.container.addEventListener('drop', board._drRef);
         });
     }
     
