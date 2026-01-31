@@ -8,12 +8,12 @@ ComponentRegistry.register({
         { "dx": 0, "dy": 4, "label": "19" }, { "dx": 0, "dy": 5, "label": "23" }, { "dx": 0, "dy": 6, "label": "5" }, { "dx": 0, "dy": 7, "label": "3V3" },
 
         // Inner Left Row (D1 Mini Compatible)
-        { "dx": 1, "dy": 0, "label": "RST" }, { "dx": 1, "dy": 1, "label": "A0" }, { "dx": 1, "dy": 2, "label": "D0" }, { "dx": 1, "dy": 3, "label": "D5" },
-        { "dx": 1, "dy": 4, "label": "D6" }, { "dx": 1, "dy": 5, "label": "D7" }, { "dx": 1, "dy": 6, "label": "D8" }, { "dx": 1, "dy": 7, "label": "3V3" },
+        { "dx": 1, "dy": 0, "label": "RST" }, { "dx": 1, "dy": 1, "label": "36" }, { "dx": 1, "dy": 2, "label": "26" }, { "dx": 1, "dy": 3, "label": "18" },
+        { "dx": 1, "dy": 4, "label": "19" }, { "dx": 1, "dy": 5, "label": "23" }, { "dx": 1, "dy": 6, "label": "5" }, { "dx": 1, "dy": 7, "label": "3V3" },
 
         // Inner Right Row (D1 Mini Compatible)
-        { "dx": 10, "dy": 0, "label": "TX" }, { "dx": 10, "dy": 1, "label": "RX" }, { "dx": 10, "dy": 2, "label": "D1" }, { "dx": 10, "dy": 3, "label": "D2" },
-        { "dx": 10, "dy": 4, "label": "D3" }, { "dx": 10, "dy": 5, "label": "D4" }, { "dx": 10, "dy": 6, "label": "G" }, { "dx": 10, "dy": 7, "label": "5V" },
+        { "dx": 10, "dy": 0, "label": "1" }, { "dx": 10, "dy": 1, "label": "3" }, { "dx": 10, "dy": 2, "label": "22" }, { "dx": 10, "dy": 3, "label": "21" },
+        { "dx": 10, "dy": 4, "label": "17" }, { "dx": 10, "dy": 5, "label": "16" }, { "dx": 10, "dy": 6, "label": "G" }, { "dx": 10, "dy": 7, "label": "5V" },
 
         // Outer Right Row (GPIOs)
         { "dx": 11, "dy": 0, "label": "27" }, { "dx": 11, "dy": 1, "label": "14" }, { "dx": 11, "dy": 2, "label": "12" }, { "dx": 11, "dy": 3, "label": "13" },
