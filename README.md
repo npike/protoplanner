@@ -1,5 +1,5 @@
 # Proto Planner
-**Version: v1.3**
+**Version: v1.4**
 
 
 Proto Planner is a simple utility designed to assist in transferring circuits from a breadboard to a protoboard. While there are numerous tools available for transitioning projects from breadboards to schematics or printed circuit boards (PCBs), finding a simple solution for the intermediate step of using protoboards proved difficult. This utility aims to fill that gap.
@@ -27,7 +27,7 @@ A growing selection of common through-hole components is available:
 *   **LEDs:** Red, Green, Blue, Yellow, and White
 *   **Power:** DC Barrel Jacks, MP1584 Buck Converters
 *   **Connectors & Switches:** Screw Terminals, Tactile Switches, 4-position DIP Switches
-*   **Microcontrollers:** Wemos D1 Mini
+*   **Microcontrollers:** Wemos D1 Mini, ESP32 D1 Mini (Type-C)
 
 ## Screenshots
 
