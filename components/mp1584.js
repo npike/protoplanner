@@ -10,13 +10,13 @@ ComponentRegistry.register({
         { "dx": 0, "dy": 6, "label": "IN+" },
         
         // Outputs on the RIGHT (Single Column)
-        { "dx": 8, "dy": 0, "label": "OUT-" },
-        { "dx": 8, "dy": 1, "label": "OUT-" },
-        { "dx": 8, "dy": 5, "label": "OUT+" },
-        { "dx": 8, "dy": 6, "label": "OUT+" }
+        { "dx": 7, "dy": 0, "label": "OUT-" },
+        { "dx": 7, "dy": 1, "label": "OUT-" },
+        { "dx": 7, "dy": 5, "label": "OUT+" },
+        { "dx": 7, "dy": 6, "label": "OUT+" }
     ],
     "body": {
-        "width": 9.0,
+        "width": 8.0,
         "height": 7.0,
         "offsetX": -0.5,
         "offsetY": -0.5,
@@ -36,6 +36,6 @@ ComponentRegistry.register({
         // Input Caps
         { "shape": "rect", "x": 0.5, "y": 2.0, "w": 0.8, "h": 2.0, "fill": "#aaa", "rx": 0.5 },
         // Output Caps
-        { "shape": "rect", "x": 7.5, "y": 2.0, "w": 0.8, "h": 2.0, "fill": "#aaa", "rx": 0.5 }
+        { "shape": "rect", "x": 6.5, "y": 2.0, "w": 0.8, "h": 2.0, "fill": "#aaa", "rx": 0.5 }
     ]
 });
