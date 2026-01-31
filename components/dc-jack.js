@@ -4,8 +4,8 @@ ComponentRegistry.register({
     "category": "Power",
     "pins": [
         { "dx": 0, "dy": 0, "label": "+" },
-        { "dx": 0, "dy": 2, "label": "-" },
-        { "dx": 0, "dy": 4 }
+        { "dx": 0, "dy": 2 },
+        { "dx": 0, "dy": 4, "label": "-" }
     ],
     "body": {
         "width": 4,
