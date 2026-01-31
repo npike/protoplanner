@@ -12,7 +12,7 @@ ComponentRegistry.register({
         { "dx": 1, "dy": 4, "label": "19" }, { "dx": 1, "dy": 5, "label": "23" }, { "dx": 1, "dy": 6, "label": "5" }, { "dx": 1, "dy": 7, "label": "3V3" },
 
         // Inner Right Row (D1 Mini Compatible)
-        { "dx": 10, "dy": 0, "label": "3" }, { "dx": 10, "dy": 1, "label": "1" }, { "dx": 10, "dy": 2, "label": "22" }, { "dx": 10, "dy": 3, "label": "21" },
+        { "dx": 10, "dy": 0, "label": "TXD" }, { "dx": 10, "dy": 1, "label": "RX3" }, { "dx": 10, "dy": 2, "label": "22" }, { "dx": 10, "dy": 3, "label": "21" },
         { "dx": 10, "dy": 4, "label": "17" }, { "dx": 10, "dy": 5, "label": "16" }, { "dx": 10, "dy": 6, "label": "G" }, { "dx": 10, "dy": 7, "label": "5V" },
 
         // Outer Right Row (GPIOs)
