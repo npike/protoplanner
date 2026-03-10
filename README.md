@@ -1,5 +1,5 @@
 # Proto Planner
-**Version: v1.4**
+**Version: v1.5**
 
 
 Proto Planner is a simple utility designed to assist in transferring circuits from a breadboard to a protoboard. While there are numerous tools available for transitioning projects from breadboards to schematics or printed circuit boards (PCBs), finding a simple solution for the intermediate step of using protoboards proved difficult. This utility aims to fill that gap.
